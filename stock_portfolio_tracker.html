@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' https: data:; connect-src 'self' https:; frame-src 'self' https:;">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="description" content="Secure stock portfolio tracking application">
+    <title>Stock Portfolio Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script nonce="random-nonce">
+    'use strict';
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    primary: '#0EA5E9',
+                    secondary: '#64748B'
+                },
+                borderRadius: {
+                    'none': '0px',
+                    'sm': '4px',
+                    DEFAULT: '8px',
+                    'md': '12px',
+                    'lg': '16px',
+                    'xl': '20px',
+                    '2xl': '24px',
+                    '3xl': '32px',
+                    'full': '9999px',
+                    'button': '8px'
+                }
+            }
+        }
+    }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+    <style>
+        :where([class^="ri-"])::before { content: "\f3c2"; }
+        .chart-container {
+            height: 400px;
+            width: 100%;
+        }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+<nav class="bg-white shadow-sm">
+    <div class="max-w-7xl mx-auto px-4">
+        <div class="flex justify-between h-16">
+            <div class="flex items-center">
+                <span class="text-2xl font-['Pacifico'] text-primary">logo</span>
+                <div class="ml-10 flex space-x-8">
+                    <a href="#" class="text-primary font-medium">Portfolio</a>
+                    <a href="#" class="text-gray-500 hover:text-primary">Markets</a>
+                    <a href="#" class="text-gray-500 hover:text-primary">News</a>
+                    <a href="#" class="text-gray-500 hover:text-primary">Alerts</a>
+                    <a href="#" class="text-gray-500 hover:text-primary" onclick="openAdminDashboard()">Admin</a>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button onclick="openSubscriptionModal()" class="!rounded-button bg-primary text-white px-4 py-2 flex items-center">
+                    <i class="ri-vip-crown-line mr-2"></i>
+                    Upgrade to Pro
+                </button>
+                <button class="!rounded-button bg-primary text-white px-4 py-2 flex items-center">
+                    <i class="ri-add-line mr-2"></i>
+                    Add Stock
+                </button>
+                <div class="relative" x-data="{ open: false }">
+                    <button @click="open = !open" class="!rounded-button bg-gray-100 hover:bg-gray-200 px-4 py-2 flex items-center">
+                        <i class="ri-download-cloud-line mr-2"></i>
+                        Import Data
+                    </button>
+                    <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg py-2 z-10">
+                        <a href="#" class="flex items-center px-4 py-2 hover:bg-gray-100" onclick="importFromTrading212()">
+                            <i class="ri-exchange-line mr-2"></i>
+                            Trading212 API
+                        </a>
+                        <a href="#" class="flex items-center px-4 py-2 hover:bg-gray-100" onclick="importFromBinance()">
+                            <i class="ri-coin-line mr-2"></i>
+                            Binance API
+                        </a>
+                        <div class="border-t my-2"></div>
+                        <label class="flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                            <i class="ri-file-excel-line mr-2"></i>
+                            Import Excel
+                            <input type="file" accept=".xlsx,.xls" class="hidden" onchange="importExcel(this)">
+                        </label>
+                        <label class="flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                            <i class="ri-file-text-line mr-2"></i>
+                            Import CSV
+                            <input type="file" accept=".csv" class="hidden" onchange="importCSV(this)">
+                        </label>
+                    </div>
+                </div>
+                <div class="w-10 h-10 flex items-center justify-center">
+                    <i class="ri-notification-3-line text-gray-600"></i>
+                </div>
+                <div class="w-10 h-10 flex items-center justify-center">
+                    <i class="ri-user-line text-gray-600"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+<main class="max-w-7xl mx-auto px-4 py-8">
+    <div class="grid grid-cols-5 gap-6 mb-8">
+        <div class="bg-white p-6 rounded shadow-sm">
+            <h3 class="text-gray-500 mb-2">Total Portfolio Value</h3>
+            <div class="text-2xl font-semibold">$247,892.45</div>
+            <div class="flex items-center mt-2 text-green-500">
+                <i class="ri-arrow-up-line mr-1"></i>
+                <span>2.4%</span>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded shadow-sm">
+            <h3 class="text-gray-500 mb-2">Day's Gain/Loss</h3>
+            <div class="text-2xl font-semibold">+$5,892.32</div>
+            <div class="flex items-center mt-2 text-green-500">
+                <i class="ri-arrow-up-line mr-1"></i>
+                <span>1.8%</span>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded shadow-sm">
+            <h3 class="text-gray-500 mb-2">Total Return</h3>
+            <div class="text-2xl font-semibold">+$42,892.12</div>
+            <div class="flex items-center mt-2 text-green-500">
+                <i class="ri-arrow-up-line mr-1"></i>
+                <span>21.4%</span>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded shadow-sm">
+            <h3 class="text-gray-500 mb-2">Annual Dividend</h3>
+            <div class="text-2xl font-semibold">$8,245.67</div>
+            <div class="flex items-center mt-2 text-blue-500">
+                <i class="ri-money-dollar-circle-line mr-1"></i>
+                <span>3.3% Yield</span>
+            </div>
+        </div>
+        <div class="bg-white p-6 rounded shadow-sm">
+            <h3 class="text-gray-500 mb-2">Risk Score</h3>
+            <div class="text-2xl font-semibold">72/100</div>
+            <div class="flex items-center mt-2 text-yellow-500">
+                <i class="ri-alert-line mr-1"></i>
+                <span>Moderate</span>
+            </div>
+        </div>
+    </div>
+    <div class="grid grid-cols-3 gap-6 mb-8">
+        <div class="col-span-2 bg-white p-6 rounded shadow-sm">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold">Portfolio Performance</h2>
+                <div class="flex space-x-2">
+                    <button class="!rounded-button px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200">1D</button>
+                    <button class="!rounded-button px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200">1W</button>
+                    <button class="!rounded-button px-3 py-1 text-sm bg-primary text-white">1M</button>
+                    <button class="!rounded-button px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200">3M</button>
+                    <button class="!rounded-button px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200">1Y</button>
+                    <button class="!rounded-button px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200">ALL</button>
+                </div>
+            </div>
+            <div id="performanceChart" class="chart-container"></div>
+        </div>
+        <div class="bg-white p-6 rounded shadow-sm">
+            <h2 class="text-xl font-semibold mb-6">Portfolio Allocation</h2>
+            <div id="allocationChart" class="chart-container"></div>
+        </div>
+    </div>
+    <div class="grid grid-cols-2 gap-6 mb-8">
+        <div class="bg-white p-6 rounded shadow-sm">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold">Dividend History</h2>
+                <div class="flex space-x-2">
+                    <button class="!rounded-button px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200">Monthly</button>
+                    <button class="!rounded-button px-3 py-1 text-sm bg-primary text-white">Quarterly</button>
+                    <button class="!rounded-button px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200">Yearly</button>
+                </div>
+            </div>
+            <div id="dividendChart" class="chart-container"></div>
+        </div>
+        <div class="bg-white p-6 rounded shadow-sm">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold">Sector Analysis</h2>
+                <button class="!rounded-button px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200">
+                    <i class="ri-download-line mr-1"></i>Export
+                </button>
+            </div>
+            <div id="sectorAnalysisChart" class="chart-container"></div>
+        </div>
+    </div>
+    <div class="bg-white rounded shadow-sm mb-8">
+        <div class="p-6 border-b">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-semibold">Stock Holdings</h2>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <input type="text" placeholder="Search stocks..." class="pl-10 pr-4 py-2 border rounded-button text-sm">
+                        <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                    <button class="!rounded-button bg-gray-100 px-4 py-2 text-sm flex items-center">
+                        <i class="ri-filter-3-line mr-2"></i>
+                        Filter
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Symbol</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shares</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Change</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Market Value</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200" id="stockTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="grid grid-cols-3 gap-6">
+        <div class="col-span-2 bg-white rounded shadow-sm p-6">
+            <h2 class="text-xl font-semibold mb-6">Latest News</h2>
+            <div id="newsContainer" class="space-y-6">
+            </div>
+        </div>
+        <div class="bg-white rounded shadow-sm p-6">
+            <h2 class="text-xl font-semibold mb-6">Price Alerts</h2>
+            <div class="space-y-4" id="alertsContainer">
+            </div>
+            <button class="!rounded-button w-full bg-primary text-white px-4 py-2 mt-4">
+                <i class="ri-add-line mr-2"></i>
+                Add New Alert
+            </button>
+        </div>
+    </div>
+</main>
+<script src="https://unpkg.com/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script nonce="random-nonce">
+// Security headers
+if(window.top !== window.self) {
+    window.top.location.href = window.self.location.href;
+}
+// CSRF token
+const csrfToken = Math.random().toString(36).slice(2);
+document.cookie = `XSRF-TOKEN=${csrfToken}; Secure; SameSite=Strict`;
+// Input sanitization
+function sanitizeInput(input) {
+    return input.replace(/[&<>"']/g, function(m) {
+        const map = {
+            '&': '&amp;',
+            '<': '<',
+            '>': '>',
+            '"': '"',
+            "'": '&#039;'
+        };
+        return map[m];
+    });
+}
+// Rate limiting
+const rateLimiter = {
+    timestamps: [],
+    limit: 100,
+    interval: 60000,
+    
+    check() {
+        const now = Date.now();
+        this.timestamps = this.timestamps.filter(t => now - t < this.interval);
+        if (this.timestamps.length >= this.limit) {
+            return false;
+        }
+        this.timestamps.push(now);
+        return true;
+    }
+};
+// Session timeout
+let sessionTimeout;
+function resetSessionTimeout() {
+    clearTimeout(sessionTimeout);
+    sessionTimeout = setTimeout(() => {
+        logout();
+        showNotification('Session expired. Please login again.');
+    }, 30 * 60 * 1000); // 30 minutes
+}
+document.addEventListener('mousemove', resetSessionTimeout);
+document.addEventListener('keypress', resetSessionTimeout);
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 px-6 py-3 rounded shadow-lg z-50 ${
+        type === 'success' ? 'bg-green-500' : 'bg-red-500'
+    } text-white`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+}
+async function importFromTrading212() {
+    try {
+        const apiKey = prompt('Please enter your Trading212 API key:');
+        if (!apiKey) return;
+        // Mock API call
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        showNotification('Successfully imported data from Trading212');
+    } catch (error) {
+        showNotification('Failed to import data from Trading212', 'error');
+    }
+}
+async function importFromBinance() {
+    try {
+        const apiKey = prompt('Please enter your Binance API key:');
+        const secretKey = prompt('Please enter your Binance secret key:');
+        if (!apiKey || !secretKey) return;
+        // Mock API call
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        showNotification('Successfully imported data from Binance');
+    } catch (error) {
+        showNotification('Failed to import data from Binance', 'error');
+    }
+}
+function importExcel(input) {
+    const file = input.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Process Excel file
+            showNotification('Successfully imported Excel file');
+        };
+        reader.readAsArrayBuffer(file);
+    }
+}
+function importCSV(input) {
+    const file = input.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Process CSV file
+            showNotification('Successfully imported CSV file');
+        };
+        reader.readAsText(file);
+    }
+}
+const mockStocks = [
+    { symbol: 'AAPL', name: 'Apple Inc.', shares: 150, price: 182.52, change: 1.24, marketValue: 27378.00 },
+    { symbol: 'MSFT', name: 'Microsoft Corporation', shares: 100, price: 402.75, change: -0.52, marketValue: 40275.00 },
+    { symbol: 'GOOGL', name: 'Alphabet Inc.', shares: 50, price: 142.56, change: 2.31, marketValue: 7128.00 },
+    { symbol: 'AMZN', name: 'Amazon.com Inc.', shares: 75, price: 174.45, change: -1.12, marketValue: 13083.75 },
+    { symbol: 'NVDA', name: 'NVIDIA Corporation', shares: 40, price: 721.28, change: 3.45, marketValue: 28851.20 }
+];
+const mockNews = [
+    {
+        title: 'Tech Stocks Rally as Fed Signals Rate Cut Timeline',
+        source: 'Financial Times',
+        time: '2 hours ago',
+        excerpt: 'Major technology stocks saw significant gains as the Federal Reserve indicated potential rate cuts in the coming months...'
+    },
+    {
+        title: 'Apple Unveils Next-Generation AI Features',
+        source: 'TechCrunch',
+        time: '4 hours ago',
+        excerpt: 'Apple announced revolutionary AI capabilities coming to its ecosystem, sending the stock to new all-time highs...'
+    },
+    {
+        title: 'Market Analysis: S&P 500 Reaches Record Territory',
+        source: 'Bloomberg',
+        time: '6 hours ago',
+        excerpt: 'The S&P 500 index touched new highs, driven by strong earnings reports and positive economic data...'
+    }
+];
+const mockAlerts = [
+    { symbol: 'AAPL', condition: 'above', price: 185.00, status: 'active' },
+    { symbol: 'MSFT', condition: 'below', price: 395.00, status: 'active' },
+    { symbol: 'GOOGL', condition: 'above', price: 145.00, status: 'triggered' }
+];
+function renderStockTable() {
+    const tbody = document.getElementById('stockTableBody');
+    tbody.innerHTML = mockStocks.map(stock => `
+        <tr>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <div class="font-medium text-gray-900">${stock.symbol}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">${stock.name}</td>
+            <td class="px-6 py-4 whitespace-nowrap">${stock.shares}</td>
+            <td class="px-6 py-4 whitespace-nowrap">$${stock.price.toFixed(2)}</td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <span class="${stock.change >= 0 ? 'text-green-500' : 'text-red-500'}">
+                    ${stock.change >= 0 ? '+' : ''}${stock.change}%
+                </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">$${stock.marketValue.toFixed(2)}</td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <button class="!rounded-button text-primary hover:bg-gray-100 p-2">
+                    <i class="ri-more-2-fill"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+function renderNews() {
+    const newsContainer = document.getElementById('newsContainer');
+    newsContainer.innerHTML = mockNews.map(news => `
+        <div class="border-b pb-6 last:border-b-0 last:pb-0">
+            <h3 class="font-medium text-lg mb-2">${news.title}</h3>
+            <p class="text-gray-600 text-sm mb-2">${news.excerpt}</p>
+            <div class="flex items-center text-sm text-gray-500">
+                <span>${news.source}</span>
+                <span class="mx-2">•</span>
+                <span>${news.time}</span>
+            </div>
+        </div>
+    `).join('');
+}
+function renderAlerts() {
+    const alertsContainer = document.getElementById('alertsContainer');
+    alertsContainer.innerHTML = mockAlerts.map(alert => `
+        <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+            <div>
+                <div class="font-medium">${alert.symbol}</div>
+                <div class="text-sm text-gray-500">
+                    ${alert.condition} $${alert.price.toFixed(2)}
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="px-2 py-1 text-xs rounded ${
+                    alert.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                }">${alert.status}</span>
+                <button class="!rounded-button text-gray-500 hover:bg-gray-200 p-2">
+                    <i class="ri-delete-bin-line"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+function initPerformanceChart() {
+    const chart = echarts.init(document.getElementById('performanceChart'));
+    const option = {
+        animation: false,
+        tooltip: {
+            trigger: 'axis',
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            borderColor: '#e5e7eb',
+            textStyle: { color: '#1f2937' }
+        },
+        grid: {
+            top: 10,
+            right: 30,
+            bottom: 30,
+            left: 60
+        },
+        xAxis: {
+            type: 'category',
+            data: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
+            axisLine: { lineStyle: { color: '#e5e7eb' } }
+        },
+        yAxis: {
+            type: 'value',
+            axisLine: { lineStyle: { color: '#e5e7eb' } },
+            splitLine: { lineStyle: { color: '#f3f4f6' } }
+        },
+        series: [{
+            data: [220000, 232000, 241000, 234000, 229000, 239000, 242000, 247000, 248000],
+            type: 'line',
+            smooth: true,
+            symbol: 'none',
+            lineStyle: { color: 'rgba(87, 181, 231, 1)' },
+            areaStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+                    offset: 0,
+                    color: 'rgba(87, 181, 231, 0.2)'
+                }, {
+                    offset: 1,
+                    color: 'rgba(87, 181, 231, 0)'
+                }])
+            }
+        }]
+    };
+    chart.setOption(option);
+}
+function initDividendChart() {
+    const chart = echarts.init(document.getElementById('dividendChart'));
+    const option = {
+        animation: false,
+        tooltip: {
+            trigger: 'axis',
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            borderColor: '#e5e7eb',
+            textStyle: { color: '#1f2937' }
+        },
+        grid: {
+            top: 10,
+            right: 30,
+            bottom: 30,
+            left: 60
+        },
+        xAxis: {
+            type: 'category',
+            data: ['Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024'],
+            axisLine: { lineStyle: { color: '#e5e7eb' } }
+        },
+        yAxis: {
+            type: 'value',
+            name: 'Dividend ($)',
+            axisLine: { lineStyle: { color: '#e5e7eb' } },
+            splitLine: { lineStyle: { color: '#f3f4f6' } }
+        },
+        series: [{
+            name: 'Dividend Amount',
+            type: 'bar',
+            data: [2100, 1980, 2245, 1920],
+            itemStyle: {
+                color: 'rgba(141, 211, 199, 1)',
+                borderRadius: [4, 4, 0, 0]
+            },
+            label: {
+                show: true,
+                position: 'top',
+                formatter: '${c}'
+            }
+        }]
+    };
+    chart.setOption(option);
+}
+function initSectorAnalysisChart() {
+    const chart = echarts.init(document.getElementById('sectorAnalysisChart'));
+    const option = {
+        animation: false,
+        tooltip: {
+            trigger: 'item',
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            borderColor: '#e5e7eb',
+            textStyle: { color: '#1f2937' }
+        },
+        legend: {
+            orient: 'vertical',
+            right: 10,
+            top: 'center'
+        },
+        series: [{
+            type: 'pie',
+            radius: ['50%', '70%'],
+            avoidLabelOverlap: false,
+            itemStyle: {
+                borderRadius: 4
+            },
+            label: {
+                show: false
+            },
+            labelLine: {
+                show: false
+            },
+            data: [
+                { value: 35, name: 'Technology', itemStyle: { color: 'rgba(87, 181, 231, 1)' } },
+                { value: 20, name: 'Healthcare', itemStyle: { color: 'rgba(141, 211, 199, 1)' } },
+                { value: 15, name: 'Finance', itemStyle: { color: 'rgba(251, 191, 114, 1)' } },
+                { value: 10, name: 'Consumer', itemStyle: { color: 'rgba(252, 141, 98, 1)' } },
+                { value: 20, name: 'Others', itemStyle: { color: 'rgba(166, 216, 84, 1)' } }
+            ]
+        }]
+    };
+    chart.setOption(option);
+}
+function initAllocationChart() {
+    const chart = echarts.init(document.getElementById('allocationChart'));
+    const option = {
+        animation: false,
+        tooltip: {
+            trigger: 'item',
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            borderColor: '#e5e7eb',
+            textStyle: { color: '#1f2937' }
+        },
+        series: [{
+            type: 'pie',
+            radius: ['40%', '70%'],
+            itemStyle: {
+                borderRadius: 4
+            },
+            label: {
+                show: true,
+                position: 'outside',
+                formatter: '{b}: {d}%'
+            },
+            data: [
+                { value: 35, name: 'Technology', itemStyle: { color: 'rgba(87, 181, 231, 1)' } },
+                { value: 25, name: 'Healthcare', itemStyle: { color: 'rgba(141, 211, 199, 1)' } },
+                { value: 20, name: 'Finance', itemStyle: { color: 'rgba(251, 191, 114, 1)' } },
+                { value: 20, name: 'Others', itemStyle: { color: 'rgba(252, 141, 98, 1)' } }
+            ]
+        }]
+    };
+    chart.setOption(option);
+}
+document.addEventListener('DOMContentLoaded', () => {
+    renderStockTable();
+    renderNews();
+    renderAlerts();
+    initPerformanceChart();
+    initAllocationChart();
+    initDividendChart();
+    initSectorAnalysisChart();
+    window.addEventListener('resize', () => {
+        const performanceChart = echarts.getInstanceByDom(document.getElementById('performanceChart'));
+        const allocationChart = echarts.getInstanceByDom(document.getElementById('allocationChart'));
+        const dividendChart = echarts.getInstanceByDom(document.getElementById('dividendChart'));
+        const sectorAnalysisChart = echarts.getInstanceByDom(document.getElementById('sectorAnalysisChart'));
+        performanceChart?.resize();
+        allocationChart?.resize();
+        dividendChart?.resize();
+        sectorAnalysisChart?.resize();
+    });
+});
+</script>
+<!-- Login Modal -->
+<div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-semibold">Login</h2>
+            <button onclick="closeLoginModal()" class="text-gray-500 hover:text-gray-700">
+                <i class="ri-close-line text-2xl"></i>
+            </button>
+        </div>
+        <form onsubmit="handleLogin(event)" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input type="email" id="loginEmail" required class="w-full px-4 py-2 border rounded-button focus:outline-none focus:ring-2 focus:ring-primary">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <input type="password" id="loginPassword" required class="w-full px-4 py-2 border rounded-button focus:outline-none focus:ring-2 focus:ring-primary">
+            </div>
+            <button type="submit" class="w-full bg-primary text-white py-2 rounded-button hover:bg-primary/90">Login</button>
+        </form>
+        <div class="mt-4 text-center text-sm text-gray-600">
+            Don't have an account? <a href="#" onclick="switchToSignup()" class="text-primary hover:underline">Sign up</a>
+        </div>
+    </div>
+</div>
+<!-- Signup Modal -->
+<div id="signupModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-semibold">Create Account</h2>
+            <button onclick="closeSignupModal()" class="text-gray-500 hover:text-gray-700">
+                <i class="ri-close-line text-2xl"></i>
+            </button>
+        </div>
+        <form onsubmit="handleSignup(event)" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <input type="text" id="signupName" required class="w-full px-4 py-2 border rounded-button focus:outline-none focus:ring-2 focus:ring-primary">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input type="email" id="signupEmail" required class="w-full px-4 py-2 border rounded-button focus:outline-none focus:ring-2 focus:ring-primary">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <input type="password" id="signupPassword" required class="w-full px-4 py-2 border rounded-button focus:outline-none focus:ring-2 focus:ring-primary">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                <input type="password" id="signupConfirmPassword" required class="w-full px-4 py-2 border rounded-button focus:outline-none focus:ring-2 focus:ring-primary">
+            </div>
+            <button type="submit" class="w-full bg-primary text-white py-2 rounded-button hover:bg-primary/90">Create Account</button>
+        </form>
+        <div class="mt-4 text-center text-sm text-gray-600">
+            Already have an account? <a href="#" onclick="switchToLogin()" class="text-primary hover:underline">Login</a>
+        </div>
+    </div>
+</div>
+<!-- Admin Dashboard Modal -->
+<div id="adminDashboardModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 h-[80vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-semibold">Admin Dashboard</h2>
+            <button onclick="closeAdminDashboard()" class="text-gray-500 hover:text-gray-700">
+                <i class="ri-close-line text-2xl"></i>
+            </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-gray-50 p-6 rounded-lg">
+                <h3 class="text-lg font-semibold mb-4">User Statistics</h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span>Total Users</span>
+                        <span class="font-semibold">1,234</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Active Users</span>
+                        <span class="font-semibold">987</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>New Users (Today)</span>
+                        <span class="font-semibold">45</span>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 p-6 rounded-lg">
+                <h3 class="text-lg font-semibold mb-4">System Status</h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span>Server Status</span>
+                        <span class="text-green-500">Online</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Last Backup</span>
+                        <span class="text-gray-500">2 hours ago</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</
